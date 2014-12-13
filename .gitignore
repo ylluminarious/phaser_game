@@ -1,0 +1,3 @@
+# ignore prepros and codekit files
+config.codekit
+prepros.cfg
