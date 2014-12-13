@@ -11,20 +11,30 @@ var WABBIT_STARTING_Y_POS = 100;
 var WABBIT_GRAVITY = 300;
 var WABBIT_BOUNCE = 1;
 
+var INTERVAL = 1.5;
+
 var STOPPED = 0;
 var RIGHT_VELOCITY = 300;
-var LEFT_VELOCITY = -300
+var LEFT_VELOCITY = -300;
+
+var MONSTER_X_START_POS = 510;
+
+var MONSTER_ACCELERATION_AMOUNT = 100;
 
 var NEXT_FIRE_TIME = 0;
 var FIRE_RATE = 400;
 
 // Global variables
 var background;
+
 var wabbit;
 var carrots;
 var carrot;
-var timer;
+
+var monsterGenerator;
 var monsters;
+var monster;
+var firstMonsterHit;
 
 var game = new Phaser.Game(GAME_WIDTH, GAME_HEIGHT, Phaser.AUTO, "game", {preload: preload, create: create, update: update});
 
@@ -46,11 +56,10 @@ function create () {
 	monsters = game.add.group();
 	monsters.enableBody = true;
 	monsters.physicsBodyType = Phaser.Physics.ARCADE;
+    monsters.setAll("body.outOfBoundsKill", true);
 	
-
-	timer = new Phaser.Timer(game);
-	game.time.events.loop(Phaser.Timer.SECOND * 2.5, createMonster, this);
-	timer.start();
+	monsterGenerator = game.time.events.loop(Phaser.Timer.SECOND * INTERVAL, generateMonsters, this);
+	monsterGenerator.timer.start();
 
 	wabbit = game.add.sprite(WABBIT_STARTING_X_POS, WABBIT_STARTING_Y_POS, "wabbit");
 	game.physics.arcade.enable(wabbit);
@@ -61,11 +70,13 @@ function create () {
 	carrots = game.add.group();
 	carrots.enableBody = true;
 	carrots.physicsBodyType = Phaser.Physics.ARCADE;
-	carrots.setAll("checkWorldBounds", true);
-	carrots.setAll("outOfBoundsKill", true);
+    carrots.setAll("body.immovable", true);
+	carrots.setAll("body.outOfBoundsKill", true);
 }
 
 function update () {
+    game.physics.arcade.collide(carrots, monsters, killMonster);
+    
 	wabbit.body.velocity.x = STOPPED;
 
 	if (wabbit.body.onFloor()) {
@@ -93,7 +104,16 @@ function shoot () {
 	carrot.body.velocity.x = RIGHT_VELOCITY;
 }
 
-function createMonster () {
-	monsters.create(510, game.world.randomY, "invader");
-	monsters.setAll("body.velocity.x", -100);
+function generateMonsters () {
+	monster = monsters.create(MONSTER_X_START_POS, game.world.randomY, "invader");
+    monsters.forEachAlive(gravitateToPlayer, this);
+}
+
+function gravitateToPlayer (monster) {
+    game.physics.arcade.accelerateToObject(monster, wabbit, MONSTER_ACCELERATION_AMOUNT);
+}
+
+function killMonster () {
+    firstMonsterHit = monsters.getFirstExists(true);
+    firstMonsterHit.kill();
 }
